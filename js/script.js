@@ -1,170 +1,294 @@
-let captchaValue = null;
-let isLoading = false;
+/**
+ * Common shared scripts for the registration and login pages.
+ *
+ * - Handles password strength feedback.
+ * - Handles password visibility toggles.
+ * - Handles AJAX form submission with consistent JSON expectations.
+ */
 
-function checkPasswordStrength(password) {
-    const passwordStrengthText = document.getElementById('passwordStrengthText');
-    const passwordSuggestionText = document.getElementById('passwordSuggestionText');
-    if (!password) {
-        passwordStrengthText.textContent = '';
-        passwordSuggestionText.textContent = '';
-        return;
-    }
+/**
+ * Returns a strength assessment for the given password.
+ *
+ * @param {string} password
+ * @returns {{level: 'invalid'|'weak'|'medium'|'strong', message: string, suggestions: string[]}}
+ */
+function getPasswordStrength(password) {
+  if (!password) {
+    return { level: 'invalid', message: '', suggestions: [] };
+  }
 
-    if (/[()":]/.test(password)) {
-        passwordStrengthText.textContent = 'Password contains forbidden characters';
-        passwordStrengthText.style.color = 'red';
-        passwordSuggestionText.textContent = '';
-        return;
-    }
+  if (/[()":]/.test(password)) {
+    return {
+      level: 'invalid',
+      message: 'Password contains forbidden characters ( ) " :',
+      suggestions: [],
+    };
+  }
 
-    const hasSpecialChars = /[#$%@!&*]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasCapitalLetters = /[A-Z]/.test(password);
-    let suggestions = [];
+  const hasSpecial = /[#$%@!&*]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const length = password.length;
 
-    if (hasSpecialChars && hasNumbers && hasCapitalLetters && password.length >= 8) {
-        passwordStrengthText.textContent = 'Password strength: Strong';
-        passwordStrengthText.style.color = 'green';
-        passwordSuggestionText.textContent = 'Great! Your password is strong.';
-    } else if ((hasNumbers || hasCapitalLetters) && password.length >= 6) {
-        passwordStrengthText.textContent = 'Password strength: Medium';
-        passwordStrengthText.style.color = 'orange';
-        if (!hasSpecialChars) suggestions.push('add a special character');
-        if (!hasNumbers) suggestions.push('add a number');
-        if (!hasCapitalLetters) suggestions.push('add a capital letter');
-        if (password.length < 8) suggestions.push('make it at least 8 characters');
-        passwordSuggestionText.textContent = 'To make your password stronger, ' + suggestions.join(', ') + '.';
-    } else {
-        passwordStrengthText.textContent = 'Password strength: Weak';
-        passwordStrengthText.style.color = 'red';
-        suggestions = ['use capital letters', 'use numbers', 'use special characters', 'make it at least 8 characters'];
-        passwordSuggestionText.textContent = 'Try to ' + suggestions.join(', ') + ' for a stronger password.';
-    }
+  const suggestions = [];
+  if (!hasUpper) suggestions.push('use an uppercase letter');
+  if (!hasNumber) suggestions.push('use a number');
+  if (!hasSpecial) suggestions.push('use a special character (e.g. #, $, %, @, !, &, *)');
+  if (length < 8) suggestions.push('make it at least 8 characters long');
+
+  if (hasSpecial && hasNumber && hasUpper && length >= 8) {
+    return {
+      level: 'strong',
+      message: 'Password strength: Strong',
+      suggestions: [],
+    };
+  }
+
+  if ((hasNumber || hasUpper) && length >= 6) {
+    return {
+      level: 'medium',
+      message: 'Password strength: Medium',
+      suggestions,
+    };
+  }
+
+  return {
+    level: 'weak',
+    message: 'Password strength: Weak',
+    suggestions,
+  };
+}
+
+function updatePasswordStrengthUI(password) {
+  const strengthEl = document.getElementById('passwordStrengthText');
+  const suggestionEl = document.getElementById('passwordSuggestionText');
+  if (!strengthEl || !suggestionEl) return;
+
+  const { level, message, suggestions } = getPasswordStrength(password);
+  strengthEl.textContent = message;
+
+  if (level === 'strong') {
+    strengthEl.style.color = 'green';
+    suggestionEl.textContent = 'Great! Your password is strong.';
+  } else if (level === 'medium') {
+    strengthEl.style.color = 'orange';
+    suggestionEl.textContent = suggestions.length ? `To improve your password, ${suggestions.join(', ')}.` : '';
+  } else if (level === 'weak') {
+    strengthEl.style.color = 'red';
+    suggestionEl.textContent = suggestions.length ? `Try to ${suggestions.join(', ')}.` : '';
+  } else {
+    strengthEl.style.color = 'red';
+    suggestionEl.textContent = '';
+  }
 }
 
 function togglePasswordVisibility(inputId, iconId) {
-    const input = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.replace('fa-eye-slash', 'fa-eye');
-    } else {
-        input.type = 'password';
-        icon.classList.replace('fa-eye-slash', 'fa-eye');
-    }
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (!input || !icon) return;
+
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  } else {
+    input.type = 'password';
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
+  }
 }
 
-function onCaptchaChange(value) {
-    captchaValue = value;
+function showAlert(type, message) {
+  const errorAlert = document.getElementById('errorAlert');
+  const successAlert = document.getElementById('successAlert');
+
+  if (!errorAlert || !successAlert) return;
+
+  errorAlert.style.display = 'none';
+  successAlert.style.display = 'none';
+
+  if (type === 'error') {
+    errorAlert.textContent = message;
+    errorAlert.style.display = 'block';
+    return;
+  }
+
+  successAlert.textContent = message;
+  successAlert.style.display = 'block';
 }
 
-function handleSubmit(event) {
+function initRegisterForm() {
+  const form = document.getElementById('registerForm');
+  if (!form) return;
+
+  const submitButton = document.getElementById('submitButton');
+  const passwordInput = document.getElementById('password');
+
+  if (passwordInput) {
+    passwordInput.addEventListener('input', (event) => {
+      updatePasswordStrengthUI(event.target.value);
+    });
+  }
+
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const errorAlert = document.getElementById('errorAlert');
-    const successAlert = document.getElementById('successAlert');
-    errorAlert.style.display = 'none';
-    successAlert.style.display = 'none';
 
-    const formData = {
-        firstName: document.getElementById('firstName').value,
-        lastName: document.getElementById('lastName').value,
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
-        confirmPassword: document.getElementById('confirmPassword').value
-    };
+    const firstName = form.querySelector('#firstName')?.value.trim();
+    const lastName = form.querySelector('#lastName')?.value.trim();
+    const email = form.querySelector('#email')?.value.trim();
+    const password = form.querySelector('#password')?.value || '';
+    const confirmPassword = form.querySelector('#confirmPassword')?.value || '';
 
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) {
-        errorAlert.textContent = 'All fields are required';
-        errorAlert.style.display = 'block';
-        return;
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      showAlert('error', 'All fields are required.');
+      return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-        errorAlert.textContent = 'Passwords do not match';
-        errorAlert.style.display = 'block';
-        return;
+    if (password !== confirmPassword) {
+      showAlert('error', 'Passwords do not match.');
+      return;
     }
 
-    if (!captchaValue) {
-        errorAlert.textContent = 'Please complete the captcha';
-        errorAlert.style.display = 'block';
-        return;
+    const { level, suggestions } = getPasswordStrength(password);
+    if (level === 'invalid' || level === 'weak') {
+      showAlert('error', `Please choose a stronger password.${suggestions.length ? ' ' + suggestions.join(', ') : ''}`);
+      return;
     }
 
-    const passwordStrengthText = document.getElementById('passwordStrengthText');
-    if (passwordStrengthText.style.color === 'red') {
-        errorAlert.textContent = 'Please choose a stronger password';
-        errorAlert.style.display = 'block';
+    const grecaptchaEl = document.querySelector('.g-recaptcha');
+    if (grecaptchaEl && typeof grecaptcha !== 'undefined') {
+      const captchaResponse = grecaptcha.getResponse();
+      if (!captchaResponse) {
+        showAlert('error', 'Please complete the captcha.');
         return;
+      }
     }
 
-    const submitButton = document.getElementById('submitButton');
-    isLoading = true;
-    submitButton.textContent = 'Signing Up...';
-    submitButton.disabled = true;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Signing Up...';
+    }
 
-    fetch('http://localhost/auth-system/register.php', {
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch(form.action, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email,
-            password: formData.password
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            successAlert.textContent = 'Registration successful! You can now login.';
-            successAlert.style.display = 'block';
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 2000);
-        } else {
-            errorAlert.textContent = data.message || 'Registration failed';
-            errorAlert.style.display = 'block';
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showAlert('success', data.message || 'Registration successful! You can now log in.');
+        form.reset();
+        updatePasswordStrengthUI('');
+        if (typeof grecaptcha !== 'undefined') {
+          grecaptcha.reset();
         }
-    })
-    .catch(error => {
-        errorAlert.textContent = 'Network error. Please try again.';
-        errorAlert.style.display = 'block';
-    })
-    .finally(() => {
-        isLoading = false;
-        submitButton.textContent = 'Sign Up';
+      } else {
+        showAlert('error', data.message || 'Registration failed.');
+      }
+    } catch (err) {
+      showAlert('error', 'A network error occurred. Please try again.');
+    } finally {
+      if (submitButton) {
         submitButton.disabled = false;
-    });
+        submitButton.textContent = 'Sign Up';
+      }
+    }
+  });
 }
 
-/**
- * Logout confirmation popup for sidebar logout button
- * Shows SweetAlert2 confirmation dialog. If confirmed, redirects to logout.php
- */
-document.addEventListener('DOMContentLoaded', function () {
-    const logoutLinks = document.querySelectorAll('a[href$="logout.php"]');
-    logoutLinks.forEach(function (logoutLink) {
-        logoutLink.addEventListener('click', function (e) {
-            e.preventDefault();
-            Swal.fire({
-                title: 'Are you sure you want to logout?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, logout',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Always redirect to the correct logout.php path
-                    window.location.href = '/SecureLoginRegister/php/logout.php';
-                }
-            });
-        });
+function initLoginForm() {
+  const form = document.getElementById('loginForm');
+  if (!form) return;
+
+  const submitButton = document.getElementById('submitButton');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const email = form.querySelector('#email')?.value.trim();
+    const password = form.querySelector('#password')?.value || '';
+
+    if (!email || !password) {
+      Swal.fire({ icon: 'error', title: 'Missing Fields', text: 'Email and password are required.' });
+      return;
+    }
+
+    const grecaptchaEl = document.querySelector('.g-recaptcha');
+    if (grecaptchaEl && typeof grecaptcha !== 'undefined') {
+      const captchaResponse = grecaptcha.getResponse();
+      if (!captchaResponse) {
+        Swal.fire({ icon: 'warning', title: 'Captcha Required', text: 'Please complete the captcha before logging in.' });
+        return;
+      }
+    }
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Logging In...';
+    }
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        Swal.fire({ icon: 'success', title: 'Login successful', text: data.message || 'Redirecting...' });
+        setTimeout(() => {
+          window.location.href = data.redirect || '../index.php';
+        }, 1300);
+      } else {
+        Swal.fire({ icon: 'error', title: 'Login Failed', text: data.message || 'Invalid email or password.' });
+      }
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Oops...', text: 'Something went wrong. Please try again.' });
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Login';
+      }
+    }
+  });
+}
+
+function initLogoutConfirmation() {
+  const logoutLinks = document.querySelectorAll('a[href$="logout.php"]');
+  if (!logoutLinks.length) return;
+
+  logoutLinks.forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Are you sure you want to logout?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, logout',
+        cancelButtonText: 'Cancel',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = link.href;
+        }
+      });
     });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initRegisterForm();
+  initLoginForm();
+  initLogoutConfirmation();
 });
 
 
+//http://localhost/password-strength-checker/front/login.html 
+//this port is required to do registeration as the db is handled by xampp. and while just normally hosting the site will not work as there would be no db connection between the static site and actual working site, even if it is locally hosted. it still requires a kind of server and db connection to work properly.
+//got it? umm, tara mero dashboard pahia ni yestai thiyo. xampp install garda feri k ho welcome page wala file delete garna parthyo k, i forgot kun chai ho so i was searching looking from my own. umm abaa k garni 
+//now let;s test the registeration functionality 

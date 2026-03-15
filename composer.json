@@ -1,0 +1,9 @@
+{
+  "name": "sangam/password-strength-checker",
+  "description": "A web application to check the strength of passwords and provide feedback to users.",
+  "require": {
+    "phpmailer/phpmailer": "^7.0",
+    "vlucas/phpdotenv": "^5.6",
+    "robthree/twofactorauth": "^3.0"
+  }
+}

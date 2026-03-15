@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Factor Authentication Setup</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card mt-5">
+                    <div class="card-body p-4">
+                        <h2 class="text-center mb-4">Two-Factor Authentication Setup</h2>
+                        <p class="text-muted">Click the button below to generate your secret key and QR code.</p>
+                        <button id="generateBtn" class="btn btn-primary w-100">Generate Secret & QR Code</button>
+                        <div id="qrContainer" class="mt-3" style="display: none;">
+                            <h5>Scan this QR code with your authenticator app:</h5>
+                            <img id="qrCode" src="" alt="QR Code" class="img-fluid">
+                            <p class="mt-2">Or enter this secret manually: <code id="secretKey"></code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('generateBtn').addEventListener('click', function () {
+            fetch('../php/2fa_generate.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('qrCode').src = data.qrCodeUrl;
+                        document.getElementById('secretKey').textContent = data.secret;
+                        document.getElementById('qrContainer').style.display = 'block';
+                        document.getElementById('generateBtn').style.display = 'none';
+
+                        // Prompt for OTP
+                        Swal.fire({
+                            title: 'Enter OTP',
+                            input: 'text',
+                            inputLabel: 'Enter the 6-digit code from your authenticator app',
+                            inputPlaceholder: '000000',
+                            inputValidator: (value) => {
+                                if (!value || !/^\d{6}$/.test(value)) {
+                                    return 'Please enter a valid 6-digit OTP!';
+                                }
+                            },
+                            showCancelButton: true,
+                            confirmButtonText: 'Verify',
+                            preConfirm: (otp) => {
+                                return fetch('../php/2fa_verify.php', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ otp: otp })
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (!data.success) {
+                                            throw new Error(data.message);
+                                        }
+                                        return data;
+                                    });
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                Swal.fire('Success!', 'Two-Factor Authentication is now enabled!', 'success');
+                            }
+                        }).catch((error) => {
+                            Swal.fire('Error', error.message, 'error');
+                        });
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'Failed to generate secret.', 'error');
+                });
+        });
+    </script>
+</body>
+
+</html>
+</content>
+<parameter name="filePath">c:\xampp\htdocs\password-strength-checker\front\2fa.html

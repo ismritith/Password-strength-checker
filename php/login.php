@@ -6,7 +6,37 @@ require 'db_connection.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
     $errors = [];
+
+    // Verify reCAPTCHA
+    if (empty($recaptchaResponse)) {
+        $errors[] = "Captcha verification failed";
+    } else {
+        $secretKey = '6Lf_DYssAAAAALLJg5WgoLsEg6xKY-6QVa7Shjuq'; // reCAPTCHA secret key what was that? 😂// alright the registeration process is now done. now just please change the design and add the 2 FA verification in this hunchha
+        $verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
+
+        $ch = curl_init($verifyUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+            'secret' => $secretKey,
+            'response' => $recaptchaResponse,
+        ]));
+        $response = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if (!$response) {
+            error_log('reCAPTCHA verify failed: ' . $curlError);
+            $errors[] = "Captcha verification failed";
+        } else {
+            $responseKeys = json_decode($response, true);
+            if (empty($responseKeys['success'])) {
+                error_log('reCAPTCHA verify response: ' . $response);
+                $errors[] = "Captcha verification failed";
+            }
+        }
+    }
 
     if (empty($email)) {
         $errors[] = 'Email is required';
@@ -57,4 +87,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: ../front/login.html');
     exit;
 }
-?>
