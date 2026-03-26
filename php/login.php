@@ -98,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'message' => 'Login successful'
         ]);
         exit;
-
     } else {
         // Log FAILED login
         $stmt = $pdo->prepare("
@@ -119,7 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         exit;
     }
-
 } else {
     // Redirect if not POST
     header('Location: ../front/login.html');
