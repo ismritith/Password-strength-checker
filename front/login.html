@@ -179,43 +179,57 @@ data-sitekey="6Lf_DYssAAAAAMhcmcGp7CMKtw02OXcjGxurNXXU"></div>
 <script src="../js/script.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-const form = document.getElementById("loginForm");
-if(form){
-form.addEventListener("submit", function(e){
-e.preventDefault();
-const button = form.querySelector("#submitButton");
-button.disabled = true;
-button.textContent = "Logging In...";
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const form = this;
+    const button = document.getElementById("submitButton");
 
-let captchaResponse = "";
-if(typeof grecaptcha !== "undefined"){
-captchaResponse = grecaptcha.getResponse();
-if(!captchaResponse){
-Swal.fire({icon:"warning",title:"Captcha Required",text:"Please complete the captcha."});
-button.disabled=false; button.textContent="Login"; return;
-}
-}
+    button.disabled = true;
+    button.innerText = "Logging in...";
 
-Swal.fire({title:"Logging in...",allowOutsideClick:false,didOpen:()=>{Swal.showLoading();}});
-const formData = new FormData(form);
-if(captchaResponse) formData.append("g-recaptcha-response",captchaResponse);
+    let captchaResponse = "";
+    if (typeof grecaptcha !== "undefined") {
+        captchaResponse = grecaptcha.getResponse();
+        if (!captchaResponse) {
+            Swal.fire("Captcha Required", "Please complete captcha", "warning");
+            button.disabled = false;
+            button.innerText = "Login";
+            return;
+        }
+    }
 
-fetch(form.action,{method:"POST",body:formData})
-.then(res=>res.json()).then(data=>{
-if(data.success){
-Swal.fire({icon:"success",title:"Login Successful!",text:data.message||"Welcome back!",timer:1500,showConfirmButton:false});
-setTimeout(()=>{window.location.href=data.redirect||"../index.php";},1500);
-}else{
-Swal.fire({icon:"error",title:"Login Failed",text:data.message||"Invalid email or password."});
-}
-})
-.catch(()=>{Swal.fire({icon:"error",title:"Oops...",text:"Something went wrong!"});})
-.finally(()=>{button.disabled=false; button.textContent="Login";});
+    const formData = new FormData(form);
+    if (captchaResponse) formData.append("g-recaptcha-response", captchaResponse);
+
+    fetch(form.action, { method: "POST", body: formData })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // If OTP is required, redirect to otp.html
+            if (data.otp_required) {
+                Swal.fire({
+                    icon: "success",
+                    title: "OTP Sent",
+                    text: "Check your email for the OTP",
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                setTimeout(() => { window.location.href = "otp.html"; }, 1500);
+            } else {
+                // fallback if no OTP (direct login)
+                window.location.href = "../dashboard.php";
+            }
+        } else {
+            Swal.fire("Login Failed", data.message || "Invalid email or password.", "error");
+        }
+    })
+    .catch(() => {
+        Swal.fire("Error", "Something went wrong", "error");
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerText = "Login";
+    });
 });
-}
-});
-</script>
-
-</body>
+</script></body>
 </html>
