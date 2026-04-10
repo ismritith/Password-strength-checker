@@ -111,15 +111,3 @@ SweetAlert is included via CDN in the HTML files.
 4. handle the otp entered by user from otp handle file in php
 5. track the user's flow on next step and align with the process
 
-try garna saknu hunxa?
-umm try garxu
-please plugin your latop, battery runnin 31 chha. i don;t think pugxa
-plugin garnus and hajurle try garnu ta ma herxu yehi batai live😂
-
-confused? how t
-not like that. tru terminal
-no no no
-
-yeskai official site ko cmd paset garey hudaina
-hunxa
-the thing is, composer pailei install garnu vako haina? so aba yo projetra ho install garni. like a library

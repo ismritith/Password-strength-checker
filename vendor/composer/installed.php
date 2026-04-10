@@ -3,7 +3,7 @@
         'name' => 'sangam/password-strength-checker',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '4c5b413ce2180e60012cb40c34a548fc95731aca',
+        'reference' => 'd7559d14a53a7b7bd7571c6f1844edfc35bad628',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -49,7 +49,7 @@
         'sangam/password-strength-checker' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '4c5b413ce2180e60012cb40c34a548fc95731aca',
+            'reference' => 'd7559d14a53a7b7bd7571c6f1844edfc35bad628',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

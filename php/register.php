@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($recaptchaResponse)) {
             $errors[] = "Captcha verification failed";
         } else {
-            $secretKey = '6Lf_DYssAAAAALLJg5WgoLsEg6xKY-6QVa7Shjuq'; // reCAPTCHA secret key
+            $secretKey = '6Lf_DYssAAAAALLJg5WgoLsEg6xKY-6QVa7Shjuq'; 
             $verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
             $response = file_get_contents($verifyUrl . '?secret=' . $secretKey . '&response=' . $recaptchaResponse);
             $responseKeys = json_decode($response, true);

@@ -1,0 +1,19 @@
+# System Requirements for Secure Registration System
+
+PHP >= 8.0
+Composer >= 2.0
+MySQL >= 5.7 
+
+# Required PHP Extensions
+PDO
+pdo_mysql
+mbstring
+openssl
+tokenizer
+json
+
+# Development Environment
+Apache/Nginx or PHP Built-in Server
+
+# Optional (Recommended)
+Git (Version Control)

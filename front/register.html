@@ -233,6 +233,10 @@ required>
 <label class="form-label">Password</label>
 
 <input type="password"
+oncopy="return false"
+oncut="return false"
+onpaste="return false"
+oncontextmenu="return false"
 id="password"
 class="form-control"
 name="password"
@@ -417,8 +421,9 @@ icon:"success",
 title:"Registration Successful!",
 timer:2500,
 showConfirmButton:false
+}).then(() => {
+window.location.href = "login.html";
 });
-
 form.reset();
 
 }else{
